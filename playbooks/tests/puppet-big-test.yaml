@@ -35,27 +35,40 @@
       tags: always
 
 
+    - name: "Set variables for single module job"
+      set_fact:
+        nickname: single
+        content_puppet_cv: SatPerfContentViewPuppetFakeModule
+        content_puppet_module_name: satperftest
+      tags: SINGLE
+
+    - name: "Set variables for job with bunch of modules"
+      set_fact:
+        nickname: bunch
+        content_puppet_cv: SatPerfContentViewPuppetRealModules
+        content_puppet_module_name: acl,apache,archive,firewalld,gcc,haproxy,java,limits,motd,nsswitch,ntp,pam,rsyslog,ssh,sysstat,tomcat
+      tags: BUNCH
+
+    - name: "Determine Puppet environment name for {{ content_puppet_cv }}"
+      shell:
+        hammer --output csv -u "{{ sat_user }}" -p "{{ sat_pass }}" environment list | grep "{{ content_puppet_cv }}" | cut -d ',' -f 2
+      delegate_to: "{{ groups['satellite6']|first }}"
+      run_once: yes
+      register: hammer_envs_grepped
+      tags: always
+    - name: "Set Puppet environment label variable"
+      set_fact:
+        content_puppet_env: "{{ hammer_envs_grepped.stdout_lines[0] }}"
+      tags: always
+
+
     # Puppet registration
     - import_tasks: includes/puppet-big-test-register.yaml
-      tags: REGISTER
+      tags: always
 
-
-    # Puppet deploy our single module
+    # Puppet deploy
     - import_tasks: includes/puppet-big-test-deploy.yaml
-      vars:
-        nickname: single
-        content_puppet_env: KT_Default_Organization_Library_SatPerfContentView_2
-        content_puppet_module_name: satperftest
-      tags: DEPLOY_SINGLE
-
-
-    # Puppet deploy lots of modules
-    - import_tasks: includes/puppet-big-test-deploy.yaml
-      vars:
-        nickname: bunch
-        content_puppet_env: KT_Default_Organization_Library_SatPerfContentViewPuppetRealModules_3
-        content_puppet_module_name: acl,apache,archive,firewalld,gcc,haproxy,java,limits,motd,nsswitch,ntp,pam,rsyslog,ssh,sysstat,tomcat
-      tags: DEPLOY_BUNCH
+      tags: always
 
 
     - import_tasks: includes/update_used_containers.yaml

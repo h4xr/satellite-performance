@@ -3,25 +3,6 @@
   - assert:
       that: "capsule_install_source == 'repo' or capsule_install_source == 'cdn'"
       msg: "Capsule install source (capsule_install_source) have to be either 'repo' or 'cdn' (current value is '{{ capsule_install_source }}')"
-
-  - name: "Determine pool we are going to attach to"
-    command:
-      subscription-manager list --available --all --matches "{{ sat_capsule_pool }}" --pool-only
-    register: querying
-    until: "{{ querying.rc }} == 0"
-    retries: 5
-    delay: 10
-  - debug:
-      var: querying
-  - name: "Attach to the pool"
-    command:
-      subscription-manager attach --pool "{{ querying.stdout_lines|first }}"
-    register: attaching
-    until: "{{ attaching.rc }} == 0"
-    retries: 5
-    delay: 10
-
-  # Check Satellite sees Capsule
   # See https://access.redhat.com/solutions/1230493
   - name: "Make sure Satellite have Capsule in /etc/hosts"
     lineinfile:
@@ -82,7 +63,7 @@
     delegate_to: "{{ groups['satellite6']|first }}"
     run_once: true
     with_items: "{{ groups['capsules'] }}"
-    when: "sat_version == '6.2'"
+    when: "{{ sat_version is version('6.2', '<=') }}"
 
   # Prepare for 6.3  capsule installation
   # NOTE: The change of --capsule-fqdn to --foreman-proxy-fqdn for Sat6.3
@@ -92,7 +73,7 @@
     delegate_to: "{{ groups['satellite6']|first }}"
     run_once: true
     with_items: "{{ groups['capsules'] }}"
-    when: "sat_version == '6.3'"
+    when: "{{ sat_version is version('6.3', '>=') }}"
     # Output of this command looks like this:
     # # capsule-certs-generate --capsule-fqdn capsule.example.com --certs-tar aaa.tar
     # Installing             Done                                               [100%] [..........]
